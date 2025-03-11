@@ -4,9 +4,13 @@
 echo "Attente de la base de données..."
 sleep 10
 
+# Fusionner les migrations conflictuelles
+echo "Fusion des migrations conflictuelles..."
+python manage.py makemigrations --merge --noinput
+
 # Appliquer les migrations
 echo "Application des migrations..."
-python manage.py migrate
+python manage.py migrate --noinput
 
 # Créer les données de test si nécessaire
 echo "Création des données de test..."
@@ -21,42 +25,45 @@ from users.models import Company
 User = get_user_model()
 
 # Créer les entreprises
-logistique, _ = Company.objects.get_or_create(
-    name='Entreprise de Logistique',
-    defaults={'address': '15 avenue de la Logistique, 75001 Paris'}
-)
-
-banque, _ = Company.objects.get_or_create(
-    name='Groupe Bancaire',
-    defaults={'address': '25 rue de la Finance, 59000 Lille'}
-)
-
-magasins, _ = Company.objects.get_or_create(
-    name='Chaîne de Magasins',
-    defaults={'address': '8 boulevard du Commerce, 31000 Toulouse'}
-)
-
-# Créer les utilisateurs
-if not User.objects.filter(username='paul').exists():
-    User.objects.create_user(
-        'paul', 'paul@logistique.fr', 'paul123',
-        first_name='Paul', last_name='Dupont',
-        company=logistique
+try:
+    logistique, _ = Company.objects.get_or_create(
+        name='Entreprise de Logistique',
+        defaults={'address': '15 avenue de la Logistique, 75001 Paris'}
     )
 
-if not User.objects.filter(username='sophie').exists():
-    User.objects.create_user(
-        'sophie', 'sophie@banque.fr', 'sophie123',
-        first_name='Sophie', last_name='Martin',
-        company=banque
+    banque, _ = Company.objects.get_or_create(
+        name='Groupe Bancaire',
+        defaults={'address': '25 rue de la Finance, 59000 Lille'}
     )
 
-if not User.objects.filter(username='karim').exists():
-    User.objects.create_user(
-        'karim', 'karim@magasins.fr', 'karim123',
-        first_name='Karim', last_name='Benali',
-        company=magasins
+    magasins, _ = Company.objects.get_or_create(
+        name='Chaîne de Magasins',
+        defaults={'address': '8 boulevard du Commerce, 31000 Toulouse'}
     )
+
+    # Créer les utilisateurs
+    if not User.objects.filter(username='paul').exists():
+        User.objects.create_user(
+            'paul', 'paul@logistique.fr', 'paul123',
+            first_name='Paul', last_name='Dupont',
+            company=logistique
+        )
+
+    if not User.objects.filter(username='sophie').exists():
+        User.objects.create_user(
+            'sophie', 'sophie@banque.fr', 'sophie123',
+            first_name='Sophie', last_name='Martin',
+            company=banque
+        )
+
+    if not User.objects.filter(username='karim').exists():
+        User.objects.create_user(
+            'karim', 'karim@magasins.fr', 'karim123',
+            first_name='Karim', last_name='Benali',
+            company=magasins
+        )
+except Exception as e:
+    print(f'Erreur lors de la création des utilisateurs: {e}')
 "
 
 # Démarrer le serveur
