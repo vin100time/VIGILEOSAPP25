@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=vigileos
+    ports:
+      - "5432:5432"
+    networks:
+      - vigileos_network
+
+  backend:
+    build: ./backend
+    restart: always
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+    environment:
+      - DEBUG=1
+      - SECRET_KEY=your_secret_key_here
+      - ALLOWED_HOSTS=localhost,127.0.0.1,backend,147.93.94.81,vigileospro.com
+      - DATABASE_URL=postgres://postgres:postgres@db:5432/vigileos
+    networks:
+      - vigileos_network
+
+  frontend:
+    build: 
+      context: ./frontend
+      dockerfile: Dockerfile
+    restart: always
+    ports:
+      - "8080:80"
+    depends_on:
+      - backend
+    networks:
+      - vigileos_network
+
+volumes:
+  postgres_data:
+
+networks:
+  vigileos_network:
