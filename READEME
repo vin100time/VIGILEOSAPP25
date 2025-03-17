@@ -1,0 +1,439 @@
+# Documentation du Projet Vigileos
+
+## Table des matières
+1. [Vue d'ensemble](#vue-densemble)
+2. [Architecture du projet](#architecture-du-projet)
+3. [Prérequis](#prérequis)
+4. [Installation et démarrage](#installation-et-démarrage)
+5. [Installation pour un nouvel utilisateur](#installation-pour-un-nouvel-utilisateur)
+6. [Arrêt des services](#arrêt-des-services)
+7. [Développement et modifications](#développement-et-modifications)
+8. [Résolution des problèmes courants](#résolution-des-problèmes-courants)
+9. [Informations de connexion](#informations-de-connexion)
+
+## Vue d'ensemble
+
+Vigileos est une application web de surveillance d'équipements et de sites. Elle permet de gérer des sites, des équipements et des alertes pour différentes entreprises. L'application est composée d'un backend Django avec une API REST et d'un frontend React.
+
+## Architecture du projet
+
+Le projet est structuré en trois composants principaux, chacun fonctionnant dans son propre conteneur Docker :
+
+1. **Base de données (PostgreSQL)** : Stocke toutes les données de l'application.
+2. **Backend (Django)** : Fournit l'API REST et la logique métier.
+3. **Frontend (React)** : Interface utilisateur de l'application.
+
+Ces composants sont connectés via un réseau Docker nommé `vigileos_network`.
+
+### Structure des répertoires
+
+```
+vigileosapp/
+├── backend/             # Code source du backend Django
+│   ├── vigileos/        # Configuration principale Django
+│   ├── users/           # Application de gestion des utilisateurs
+│   ├── sites/           # Application de gestion des sites
+│   ├── equipment/       # Application de gestion des équipements
+│   ├── alerts/          # Application de gestion des alertes
+│   ├── Dockerfile       # Configuration Docker pour le backend
+│   └── entrypoint.sh    # Script de démarrage du backend
+├── frontend/            # Code source du frontend React
+│   ├── src/             # Code source React
+│   ├── public/          # Fichiers statiques
+│   ├── Dockerfile       # Configuration Docker pour le frontend
+│   └── nginx.conf       # Configuration Nginx pour servir le frontend
+└── README.md            # Ce fichier de documentation
+```
+
+## Prérequis
+
+- Docker
+- Docker Compose (optionnel)
+- Git (pour le développement)
+
+## Installation et démarrage
+
+### Méthode 1 : Démarrage manuel avec Docker
+
+1. **Cloner le dépôt** (si ce n'est pas déjà fait) :
+   ```bash
+   git clone <url-du-dépôt> vigileosapp
+   cd vigileosapp
+   ```
+
+2. **Créer le réseau Docker** :
+   ```bash
+   sudo docker network create vigileos_network
+   ```
+
+3. **Lancer la base de données** :
+   ```bash
+   sudo docker run -d --name vigileos_db \
+     -p 5432:5432 \
+     -e POSTGRES_DB=vigileos \
+     -e POSTGRES_USER=postgres \
+     -e POSTGRES_PASSWORD=postgres \
+     --network vigileos_network \
+     postgres:15
+   ```
+
+4. **Construire et lancer le backend** :
+   ```bash
+   cd backend
+   sudo docker build -t vigileos_backend .
+   sudo docker run -d --name vigileos_backend \
+     -p 8000:8000 \
+     --network vigileos_network \
+     vigileos_backend
+   cd ..
+   ```
+
+5. **Construire et lancer le frontend** :
+   ```bash
+   cd frontend
+   sudo docker build -t vigileos_frontend .
+   sudo docker run -d --name vigileos_frontend \
+     -p 8080:80 \
+     --network vigileos_network \
+     vigileos_frontend
+   cd ..
+   ```
+
+6. **Accéder à l'application** :
+   Ouvrez votre navigateur et accédez à `http://<adresse-ip-du-serveur>:8080`
+
+### Méthode 2 : Utilisation de Docker Compose (si disponible)
+
+1. **Créer un fichier docker-compose.yml** à la racine du projet :
+   ```yaml
+   version: '3'
+
+   services:
+     db:
+       image: postgres:15
+       container_name: vigileos_db
+       environment:
+         - POSTGRES_DB=vigileos
+         - POSTGRES_USER=postgres
+         - POSTGRES_PASSWORD=postgres
+       ports:
+         - "5432:5432"
+       networks:
+         - vigileos_network
+       volumes:
+         - postgres_data:/var/lib/postgresql/data/
+
+     backend:
+       build: ./backend
+       container_name: vigileos_backend
+       depends_on:
+         - db
+       ports:
+         - "8000:8000"
+       networks:
+         - vigileos_network
+
+     frontend:
+       build: ./frontend
+       container_name: vigileos_frontend
+       depends_on:
+         - backend
+       ports:
+         - "8080:80"
+       networks:
+         - vigileos_network
+
+   networks:
+     vigileos_network:
+
+   volumes:
+     postgres_data:
+   ```
+
+2. **Lancer tous les services** :
+   ```bash
+   sudo docker-compose up -d
+   ```
+
+## Installation pour un nouvel utilisateur
+
+Si vous souhaitez partager ce projet avec un ami pour qu'il puisse le tester sur son propre ordinateur, voici les étapes à suivre :
+
+### Prérequis pour votre ami
+
+1. **Installer Docker** :
+   - Pour Windows/Mac : Télécharger et installer [Docker Desktop](https://www.docker.com/products/docker-desktop)
+   - Pour Linux : Suivre les [instructions d'installation de Docker Engine](https://docs.docker.com/engine/install/)
+
+2. **Vérifier l'installation de Docker** :
+   ```bash
+   docker --version
+   ```
+
+### Partager le code source
+
+#### Option 1 : Via Git (recommandé)
+
+1. **Créer un dépôt Git** (si ce n'est pas déjà fait) :
+   ```bash
+   cd vigileosapp
+   git init
+   git add .
+   git commit -m "Initial commit"
+   ```
+
+2. **Partager via GitHub/GitLab/etc.** :
+   - Créer un dépôt sur GitHub/GitLab
+   - Suivre les instructions pour pousser le code vers le dépôt distant
+   - Partager l'URL du dépôt avec votre ami
+
+3. **Pour votre ami - Cloner le dépôt** :
+   ```bash
+   git clone <url-du-dépôt> vigileos
+   cd vigileos
+   ```
+
+#### Option 2 : Via une archive
+
+1. **Créer une archive du projet** :
+   ```bash
+   cd ..
+   tar -czvf vigileos.tar.gz vigileosapp/
+   # ou pour Windows
+   # zip -r vigileos.zip vigileosapp/
+   ```
+
+2. **Partager l'archive** avec votre ami (via email, cloud, etc.)
+
+3. **Pour votre ami - Extraire l'archive** :
+   ```bash
+   tar -xzvf vigileos.tar.gz
+   # ou pour Windows
+   # unzip vigileos.zip
+   cd vigileosapp
+   ```
+
+### Lancement du projet pour votre ami
+
+Une fois le code source récupéré, votre ami peut suivre ces étapes :
+
+1. **Créer le réseau Docker** :
+   ```bash
+   docker network create vigileos_network
+   ```
+
+2. **Lancer la base de données** :
+   ```bash
+   docker run -d --name vigileos_db \
+     -p 5432:5432 \
+     -e POSTGRES_DB=vigileos \
+     -e POSTGRES_USER=postgres \
+     -e POSTGRES_PASSWORD=postgres \
+     --network vigileos_network \
+     postgres:15
+   ```
+
+3. **Construire et lancer le backend** :
+   ```bash
+   cd backend
+   docker build -t vigileos_backend .
+   docker run -d --name vigileos_backend \
+     -p 8000:8000 \
+     --network vigileos_network \
+     vigileos_backend
+   cd ..
+   ```
+
+4. **Construire et lancer le frontend** :
+   ```bash
+   cd frontend
+   docker build -t vigileos_frontend .
+   docker run -d --name vigileos_frontend \
+     -p 8080:80 \
+     --network vigileos_network \
+     vigileos_frontend
+   cd ..
+   ```
+
+5. **Accéder à l'application** :
+   - Ouvrir un navigateur et accéder à `http://localhost:8080`
+   - Se connecter avec les identifiants par défaut (voir [Informations de connexion](#informations-de-connexion))
+
+### Remarques importantes pour votre ami
+
+- Si votre ami utilise Windows avec Docker Desktop, il pourrait avoir besoin d'activer WSL 2 (Windows Subsystem for Linux).
+- Sur certains systèmes, les commandes Docker peuvent nécessiter des privilèges administrateur (`sudo` sous Linux/Mac, ou exécuter en tant qu'administrateur sous Windows).
+- Si les ports 8000, 8080 ou 5432 sont déjà utilisés sur la machine de votre ami, il faudra modifier les mappings de ports dans les commandes Docker.
+
+## Arrêt des services
+
+### Méthode 1 : Arrêt manuel avec Docker
+
+1. **Arrêter et supprimer les conteneurs** :
+   ```bash
+   sudo docker stop vigileos_frontend vigileos_backend vigileos_db
+   sudo docker rm vigileos_frontend vigileos_backend vigileos_db
+   ```
+
+2. **Supprimer le réseau** (optionnel) :
+   ```bash
+   sudo docker network rm vigileos_network
+   ```
+
+### Méthode 2 : Arrêt avec Docker Compose
+
+```bash
+sudo docker-compose down
+```
+
+## Développement et modifications
+
+### Modification du Backend
+
+1. **Accéder au code du backend** :
+   ```bash
+   cd backend
+   ```
+
+2. **Modifier les fichiers** selon vos besoins.
+
+3. **Reconstruire et redémarrer le conteneur backend** :
+   ```bash
+   sudo docker stop vigileos_backend
+   sudo docker rm vigileos_backend
+   sudo docker build -t vigileos_backend .
+   sudo docker run -d --name vigileos_backend -p 8000:8000 --network vigileos_network vigileos_backend
+   ```
+
+4. **Appliquer les migrations** (si nécessaire) :
+   ```bash
+   sudo docker exec -it vigileos_backend python manage.py makemigrations
+   sudo docker exec -it vigileos_backend python manage.py migrate
+   ```
+
+### Modification du Frontend
+
+1. **Accéder au code du frontend** :
+   ```bash
+   cd frontend
+   ```
+
+2. **Modifier les fichiers** selon vos besoins.
+
+3. **Reconstruire et redémarrer le conteneur frontend** :
+   ```bash
+   sudo docker stop vigileos_frontend
+   sudo docker rm vigileos_frontend
+   sudo docker build -t vigileos_frontend .
+   sudo docker run -d --name vigileos_frontend -p 8080:80 --network vigileos_network vigileos_frontend
+   ```
+
+### Configuration Nginx
+
+Le fichier `frontend/nginx.conf` contient la configuration Nginx qui gère la redirection des requêtes API vers le backend. Si vous rencontrez des problèmes de communication entre le frontend et le backend, vérifiez ce fichier.
+
+Configuration actuelle :
+```nginx
+server {
+    listen 80;
+    
+    location / {
+        root /usr/share/nginx/html;
+        index index.html index.htm;
+        try_files $uri $uri/ /index.html;
+    }
+    
+    # Configuration pour rediriger les appels API vers le backend
+    location /api/ {
+        proxy_pass http://vigileos_backend:8000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # Gérer les erreurs
+    error_page 500 502 503 504 /50x.html;
+    location = /50x.html {
+        root /usr/share/nginx/html;
+    }
+}
+```
+
+## Résolution des problèmes courants
+
+### Problème : Le frontend ne peut pas se connecter au backend
+
+**Symptômes** : Erreur "API Error: Not Found" lors de la connexion.
+
+**Solutions** :
+1. Vérifiez que tous les conteneurs sont en cours d'exécution :
+   ```bash
+   sudo docker ps
+   ```
+
+2. Vérifiez les logs du frontend :
+   ```bash
+   sudo docker logs vigileos_frontend
+   ```
+
+3. Vérifiez les logs du backend :
+   ```bash
+   sudo docker logs vigileos_backend
+   ```
+
+4. Assurez-vous que la configuration Nginx est correcte dans `frontend/nginx.conf`.
+
+### Problème : Erreurs de migration dans le backend
+
+**Symptômes** : Le backend ne démarre pas correctement ou affiche des erreurs de migration.
+
+**Solutions** :
+1. Appliquez les migrations manuellement :
+   ```bash
+   sudo docker exec -it vigileos_backend python manage.py migrate
+   ```
+
+2. En cas de conflits de migration, fusionnez-les :
+   ```bash
+   sudo docker exec -it vigileos_backend python manage.py makemigrations --merge
+   sudo docker exec -it vigileos_backend python manage.py migrate
+   ```
+
+### Problème : La base de données ne démarre pas
+
+**Symptômes** : Le conteneur de la base de données s'arrête immédiatement après le démarrage.
+
+**Solutions** :
+1. Vérifiez les logs de la base de données :
+   ```bash
+   sudo docker logs vigileos_db
+   ```
+
+2. Assurez-vous que le volume de données n'est pas corrompu :
+   ```bash
+   sudo docker volume ls
+   sudo docker volume rm postgres_data  # Attention : cela supprimera toutes les données !
+   ```
+
+## Informations de connexion
+
+### Interface d'administration Django
+
+- URL : `http://<adresse-ip-du-serveur>:8000/admin/`
+- Utilisateur : `admin`
+- Mot de passe : `admin123`
+
+### Application frontend
+
+- URL : `http://<adresse-ip-du-serveur>:8080`
+- Utilisateur : `admin`
+- Mot de passe : `admin123`
+
+### Base de données PostgreSQL
+
+- Hôte : `localhost` ou `vigileos_db` (dans le réseau Docker)
+- Port : `5432`
+- Base de données : `vigileos`
+- Utilisateur : `postgres`
+- Mot de passe : `postgres` 
