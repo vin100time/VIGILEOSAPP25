@@ -4,13 +4,41 @@
 echo "Attente de la base de données..."
 sleep 10
 
-# Fusionner les migrations conflictuelles
-echo "Fusion des migrations conflictuelles..."
-python manage.py makemigrations --merge --noinput
+# S'assurer que le répertoire des migrations existe pour toutes les applications
+echo "Vérification des répertoires de migrations..."
+mkdir -p users/migrations
+mkdir -p sites/migrations
+mkdir -p equipment/migrations
+mkdir -p alerts/migrations
+touch users/migrations/__init__.py
+touch sites/migrations/__init__.py
+touch equipment/migrations/__init__.py
+touch alerts/migrations/__init__.py
+
+# Supprimer toutes les migrations existantes
+echo "Suppression des migrations existantes..."
+rm -f users/migrations/0*.py
+rm -f sites/migrations/0*.py
+rm -f equipment/migrations/0*.py
+rm -f alerts/migrations/0*.py
+
+# Effectuer les makemigrations pour toutes les applications
+echo "Création des migrations initiales..."
+python manage.py makemigrations users --noinput
+python manage.py makemigrations sites --noinput
+python manage.py makemigrations equipment --noinput
+python manage.py makemigrations alerts --noinput
 
 # Appliquer les migrations
 echo "Application des migrations..."
-python manage.py migrate --noinput
+python manage.py migrate auth --noinput
+python manage.py migrate admin --noinput
+python manage.py migrate contenttypes --noinput
+python manage.py migrate sessions --noinput
+python manage.py migrate users --noinput
+python manage.py migrate sites --noinput
+python manage.py migrate equipment --noinput
+python manage.py migrate alerts --noinput
 
 # Créer les données de test si nécessaire
 echo "Création des données de test..."
@@ -65,6 +93,10 @@ try:
 except Exception as e:
     print(f'Erreur lors de la création des utilisateurs: {e}')
 "
+
+# Collecter les fichiers statiques
+echo "Collecte des fichiers statiques..."
+python manage.py collectstatic --noinput
 
 # Démarrer le serveur
 echo "Démarrage du serveur..."
