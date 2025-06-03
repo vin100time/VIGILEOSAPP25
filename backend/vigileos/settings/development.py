@@ -19,7 +19,7 @@ DATABASES = {
 
 # Add development apps
 INSTALLED_APPS += [
-    'django_extensions',
+    # 'django_extensions',  # Commented out for now
 ]
 
 # Development middleware

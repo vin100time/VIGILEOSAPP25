@@ -173,8 +173,8 @@ CORS_ALLOWED_ORIGINS = [
 
 CORS_ALLOW_CREDENTIALS = True
 
-# Custom user model (if needed)
-# AUTH_USER_MODEL = 'users.User'
+# Custom user model
+AUTH_USER_MODEL = 'users.User'
 
 # Logging configuration
 LOGGING = {
