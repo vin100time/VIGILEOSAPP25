@@ -1,4 +1,24 @@
 
+# Development stage
+FROM node:20-alpine as development
+
+WORKDIR /app
+
+# Copier les fichiers de dépendances
+COPY package*.json ./
+
+# Installer les dépendances
+RUN npm install --legacy-peer-deps
+
+# Copier les sources
+COPY . .
+
+# Exposer le port
+EXPOSE 3000
+
+# Commande par défaut pour le développement
+CMD ["npm", "run", "dev"]
+
 # Build stage
 FROM node:20-alpine as build
 

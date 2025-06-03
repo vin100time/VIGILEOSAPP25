@@ -8,3 +8,13 @@ django-cors-headers==4.3.1
 Pillow==10.1.0
 python-decouple==3.8
 dj-database-url==2.1.0
+
+# Database
+psycopg2-binary==2.9.9
+
+# Cache and task queue
+redis==5.0.1
+celery==5.3.4
+
+# HTTP requests
+requests==2.31.0

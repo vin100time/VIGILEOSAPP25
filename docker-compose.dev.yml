@@ -43,7 +43,7 @@ services:
       - SECRET_KEY=django-insecure-development-key-do-not-use-in-production
       - DATABASE_URL=postgresql://${POSTGRES_USER:-vigileosapp_dev}:${POSTGRES_PASSWORD:-dev_password_123}@postgres-dev:5432/${POSTGRES_DB:-vigileosapp_dev}
       - REDIS_URL=redis://:${REDIS_PASSWORD:-dev_redis_123}@redis-dev:6379/0
-      - ALLOWED_HOSTS=localhost,127.0.0.1,0.0.0.0
+      - ALLOWED_HOSTS=*
       - DJANGO_SETTINGS_MODULE=vigileos.settings.development
       - DJANGO_SUPERUSER_USERNAME=${DJANGO_SUPERUSER_USERNAME:-admin}
       - DJANGO_SUPERUSER_EMAIL=${DJANGO_SUPERUSER_EMAIL:-admin@localhost}
@@ -102,7 +102,7 @@ services:
     ports:
       - "${FRONTEND_PORT:-3000}:3000"
     environment:
-      - REACT_APP_API_URL=http://localhost:8000/api
+      - REACT_APP_API_URL=http://localhost:12000/api
       - CHOKIDAR_USEPOLLING=true
       - WATCHPACK_POLLING=true
     volumes:
@@ -111,7 +111,7 @@ services:
     networks:
       - vigileosapp-dev-network
     restart: unless-stopped
-    command: npm start
+    command: npm run dev
 
   # MailHog pour tester les emails en développement
   mailhog:

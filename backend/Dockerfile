@@ -19,6 +19,39 @@ WORKDIR /app
 COPY requirements/ requirements/
 RUN pip install --no-cache-dir --user -r requirements/production.txt
 
+# Development stage
+FROM python:3.11-slim as development
+
+# Set environment variables
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+ENV DJANGO_SETTINGS_MODULE=vigileos.settings.development
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    postgresql-client \
+    netcat-openbsd \
+    build-essential \
+    libpq-dev \
+    gcc \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set work directory
+WORKDIR /app
+
+# Install Python dependencies for development
+COPY requirements/ requirements/
+RUN pip install --no-cache-dir -r requirements/development.txt
+
+# Copy project files
+COPY . .
+
+# Expose port
+EXPOSE 8000
+
+# Default command for development
+CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+
 # Production stage
 FROM python:3.11-slim
 

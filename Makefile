@@ -40,11 +40,11 @@ dev-setup: ## Configuration initiale pour le développement
 
 dev-build: dev-setup ## Construire les images pour le développement
 	@echo "$(BLUE)Construction des images de développement...$(NC)"
-	@docker-compose -f $(COMPOSE_DEV_FILE) --env-file $(ENV_DEV_FILE) build
+	@docker compose -f $(COMPOSE_DEV_FILE) --env-file $(ENV_DEV_FILE) build
 
 dev-start: dev-build ## Démarrer tous les services en mode développement
 	@echo "$(BLUE)Démarrage des services de développement...$(NC)"
-	@docker-compose -f $(COMPOSE_DEV_FILE) --env-file $(ENV_DEV_FILE) up -d
+	@docker compose -f $(COMPOSE_DEV_FILE) --env-file $(ENV_DEV_FILE) up -d
 	@echo "$(GREEN)Services démarrés:$(NC)"
 	@echo "  - Application: http://localhost:8000"
 	@echo "  - Frontend: http://localhost:3000"
@@ -54,31 +54,31 @@ dev-start: dev-build ## Démarrer tous les services en mode développement
 
 dev-stop: ## Arrêter tous les services de développement
 	@echo "$(BLUE)Arrêt des services de développement...$(NC)"
-	@docker-compose -f $(COMPOSE_DEV_FILE) down
+	@docker compose -f $(COMPOSE_DEV_FILE) down
 
 dev-restart: dev-stop dev-start ## Redémarrer les services de développement
 
 dev-logs: ## Afficher les logs de développement
-	@docker-compose -f $(COMPOSE_DEV_FILE) logs -f
+	@docker compose -f $(COMPOSE_DEV_FILE) logs -f
 
 dev-shell: ## Accéder au shell Django en développement
-	@docker-compose -f $(COMPOSE_DEV_FILE) exec web-dev python manage.py shell
+	@docker compose -f $(COMPOSE_DEV_FILE) exec web-dev python manage.py shell
 
 dev-migrate: ## Exécuter les migrations en développement
-	@docker-compose -f $(COMPOSE_DEV_FILE) exec web-dev python manage.py migrate
+	@docker compose -f $(COMPOSE_DEV_FILE) exec web-dev python manage.py migrate
 
 dev-makemigrations: ## Créer de nouvelles migrations en développement
-	@docker-compose -f $(COMPOSE_DEV_FILE) exec web-dev python manage.py makemigrations
+	@docker compose -f $(COMPOSE_DEV_FILE) exec web-dev python manage.py makemigrations
 
 dev-superuser: ## Créer un superutilisateur en développement
-	@docker-compose -f $(COMPOSE_DEV_FILE) exec web-dev python manage.py createsuperuser
+	@docker compose -f $(COMPOSE_DEV_FILE) exec web-dev python manage.py createsuperuser
 
 dev-test: ## Exécuter les tests en développement
-	@docker-compose -f $(COMPOSE_DEV_FILE) exec web-dev python manage.py test
+	@docker compose -f $(COMPOSE_DEV_FILE) exec web-dev python manage.py test
 
 dev-clean: ## Nettoyer l'environnement de développement
 	@echo "$(BLUE)Nettoyage de l'environnement de développement...$(NC)"
-	@docker-compose -f $(COMPOSE_DEV_FILE) down -v
+	@docker compose -f $(COMPOSE_DEV_FILE) down -v
 	@docker system prune -f
 	@echo "$(GREEN)Nettoyage terminé$(NC)"
 
@@ -97,59 +97,59 @@ prod-setup: ## Configuration initiale pour la production
 
 prod-build: prod-setup ## Construire les images pour la production
 	@echo "$(BLUE)Construction des images de production...$(NC)"
-	@docker-compose -f $(COMPOSE_FILE) --env-file $(ENV_FILE) build --no-cache
+	@docker compose -f $(COMPOSE_FILE) --env-file $(ENV_FILE) build --no-cache
 
 prod-deploy: prod-build ## Déployer en production
 	@echo "$(BLUE)Déploiement en production...$(NC)"
-	@docker-compose -f $(COMPOSE_FILE) --env-file $(ENV_FILE) up -d
+	@docker compose -f $(COMPOSE_FILE) --env-file $(ENV_FILE) up -d
 	@echo "$(GREEN)Déploiement terminé$(NC)"
 	@echo "  - Application: https://localhost"
 	@echo "  - Admin: https://localhost/admin"
 
 prod-start: ## Démarrer les services de production
-	@docker-compose -f $(COMPOSE_FILE) --env-file $(ENV_FILE) up -d
+	@docker compose -f $(COMPOSE_FILE) --env-file $(ENV_FILE) up -d
 
 prod-stop: ## Arrêter les services de production
-	@docker-compose -f $(COMPOSE_FILE) down
+	@docker compose -f $(COMPOSE_FILE) down
 
 prod-restart: prod-stop prod-start ## Redémarrer les services de production
 
 prod-update: ## Mettre à jour l'application en production
 	@echo "$(BLUE)Mise à jour de l'application...$(NC)"
-	@docker-compose -f $(COMPOSE_FILE) --env-file $(ENV_FILE) pull
-	@docker-compose -f $(COMPOSE_FILE) --env-file $(ENV_FILE) build --no-cache
-	@docker-compose -f $(COMPOSE_FILE) --env-file $(ENV_FILE) up -d --no-deps web
+	@docker compose -f $(COMPOSE_FILE) --env-file $(ENV_FILE) pull
+	@docker compose -f $(COMPOSE_FILE) --env-file $(ENV_FILE) build --no-cache
+	@docker compose -f $(COMPOSE_FILE) --env-file $(ENV_FILE) up -d --no-deps web
 	@echo "$(GREEN)Mise à jour terminée$(NC)"
 
 prod-logs: ## Afficher les logs de production
-	@docker-compose -f $(COMPOSE_FILE) logs -f
+	@docker compose -f $(COMPOSE_FILE) logs -f
 
 prod-shell: ## Accéder au shell Django en production
-	@docker-compose -f $(COMPOSE_FILE) exec web python manage.py shell
+	@docker compose -f $(COMPOSE_FILE) exec web python manage.py shell
 
 prod-migrate: ## Exécuter les migrations en production
-	@docker-compose -f $(COMPOSE_FILE) exec web python manage.py migrate
+	@docker compose -f $(COMPOSE_FILE) exec web python manage.py migrate
 
 # =============================================================================
 # COMMANDES GÉNÉRIQUES
 # =============================================================================
 
 logs: ## Afficher les logs (détecte automatiquement l'environnement)
-	@if [ -f $(ENV_DEV_FILE) ] && docker-compose -f $(COMPOSE_DEV_FILE) ps | grep -q "Up"; then \
+	@if [ -f $(ENV_DEV_FILE) ] && docker compose -f $(COMPOSE_DEV_FILE) ps | grep -q "Up"; then \
 		make dev-logs; \
 	else \
 		make prod-logs; \
 	fi
 
 shell: ## Accéder au shell Django (détecte automatiquement l'environnement)
-	@if [ -f $(ENV_DEV_FILE) ] && docker-compose -f $(COMPOSE_DEV_FILE) ps | grep -q "Up"; then \
+	@if [ -f $(ENV_DEV_FILE) ] && docker compose -f $(COMPOSE_DEV_FILE) ps | grep -q "Up"; then \
 		make dev-shell; \
 	else \
 		make prod-shell; \
 	fi
 
 migrate: ## Exécuter les migrations (détecte automatiquement l'environnement)
-	@if [ -f $(ENV_DEV_FILE) ] && docker-compose -f $(COMPOSE_DEV_FILE) ps | grep -q "Up"; then \
+	@if [ -f $(ENV_DEV_FILE) ] && docker compose -f $(COMPOSE_DEV_FILE) ps | grep -q "Up"; then \
 		make dev-migrate; \
 	else \
 		make prod-migrate; \
@@ -163,7 +163,7 @@ backup: ## Sauvegarder la base de données
 	@echo "$(BLUE)Sauvegarde de la base de données...$(NC)"
 	@mkdir -p backups
 	@TIMESTAMP=$$(date +%Y%m%d_%H%M%S); \
-	if docker-compose -f $(COMPOSE_FILE) ps | grep -q "vigileosapp-postgres"; then \
+	if docker compose -f $(COMPOSE_FILE) ps | grep -q "vigileosapp-postgres"; then \
 		docker exec vigileosapp-postgres pg_dump -U vigileosapp_user vigileosapp | gzip > backups/postgres_backup_$$TIMESTAMP.sql.gz; \
 	else \
 		docker exec vigileosapp-postgres-dev pg_dump -U vigileosapp_dev vigileosapp_dev | gzip > backups/postgres_backup_dev_$$TIMESTAMP.sql.gz; \
@@ -191,12 +191,12 @@ health: ## Vérifier la santé des services
 
 status: ## Afficher le statut des conteneurs
 	@echo "$(BLUE)Statut des conteneurs:$(NC)"
-	@docker-compose -f $(COMPOSE_FILE) ps 2>/dev/null || docker-compose -f $(COMPOSE_DEV_FILE) ps
+	@docker compose -f $(COMPOSE_FILE) ps 2>/dev/null || docker compose -f $(COMPOSE_DEV_FILE) ps
 
 clean: ## Nettoyer les ressources Docker
 	@echo "$(BLUE)Nettoyage des ressources Docker...$(NC)"
-	@docker-compose -f $(COMPOSE_FILE) down -v 2>/dev/null || true
-	@docker-compose -f $(COMPOSE_DEV_FILE) down -v 2>/dev/null || true
+	@docker compose -f $(COMPOSE_FILE) down -v 2>/dev/null || true
+	@docker compose -f $(COMPOSE_DEV_FILE) down -v 2>/dev/null || true
 	@docker system prune -f
 	@docker volume prune -f
 	@echo "$(GREEN)Nettoyage terminé$(NC)"
@@ -207,16 +207,16 @@ clean: ## Nettoyer les ressources Docker
 
 test: ## Exécuter tous les tests
 	@echo "$(BLUE)Exécution des tests...$(NC)"
-	@if docker-compose -f $(COMPOSE_DEV_FILE) ps | grep -q "Up"; then \
-		docker-compose -f $(COMPOSE_DEV_FILE) exec web-dev python manage.py test; \
+	@if docker compose -f $(COMPOSE_DEV_FILE) ps | grep -q "Up"; then \
+		docker compose -f $(COMPOSE_DEV_FILE) exec web-dev python manage.py test; \
 	else \
-		docker-compose -f $(COMPOSE_FILE) exec web python manage.py test; \
+		docker compose -f $(COMPOSE_FILE) exec web python manage.py test; \
 	fi
 
 lint: ## Vérifier la qualité du code
 	@echo "$(BLUE)Vérification de la qualité du code...$(NC)"
-	@if docker-compose -f $(COMPOSE_DEV_FILE) ps | grep -q "Up"; then \
-		docker-compose -f $(COMPOSE_DEV_FILE) exec web-dev flake8 .; \
+	@if docker compose -f $(COMPOSE_DEV_FILE) ps | grep -q "Up"; then \
+		docker compose -f $(COMPOSE_DEV_FILE) exec web-dev flake8 .; \
 	else \
 		echo "$(YELLOW)Démarrez l'environnement de développement pour utiliser lint$(NC)"; \
 	fi

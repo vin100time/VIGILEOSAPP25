@@ -10,11 +10,11 @@ DEBUG = True
 ALLOWED_HOSTS = ['*']
 
 # Database
+import dj_database_url
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
+    'default': dj_database_url.config(
+        default='postgresql://vigileosapp_dev:dev_password_123@postgres-dev:5432/vigileosapp_dev'
+    )
 }
 
 # Add development apps
@@ -33,10 +33,11 @@ CORS_ALLOW_ALL_ORIGINS = True
 # Email backend for development
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
-# Cache (dummy cache for development)
+# Cache (Redis for development)
 CACHES = {
     'default': {
-        'BACKEND': 'django.core.cache.backends.dummy.DummyCache',
+        'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+        'LOCATION': config('REDIS_URL', default='redis://:dev_redis_123@redis-dev:6379/1'),
     }
 }
 
