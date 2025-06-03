@@ -1,0 +1,144 @@
+version: '3.8'
+
+services:
+  # Base de données PostgreSQL pour le développement
+  postgres-dev:
+    image: postgres:15-alpine
+    container_name: vigileosapp-postgres-dev
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-vigileosapp_dev}
+      POSTGRES_USER: ${POSTGRES_USER:-vigileosapp_dev}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-dev_password_123}
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    ports:
+      - "${POSTGRES_PORT:-5433}:5432"
+    networks:
+      - vigileosapp-dev-network
+    restart: unless-stopped
+
+  # Cache Redis pour le développement
+  redis-dev:
+    image: redis:7-alpine
+    container_name: vigileosapp-redis-dev
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-dev_redis_123}
+    volumes:
+      - redis_dev_data:/data
+    ports:
+      - "${REDIS_PORT:-6380}:6379"
+    networks:
+      - vigileosapp-dev-network
+    restart: unless-stopped
+
+  # Application Django en mode développement
+  web-dev:
+    build: 
+      context: ./backend
+      dockerfile: Dockerfile
+      target: development
+    container_name: vigileosapp-web-dev
+    environment:
+      - DEBUG=True
+      - SECRET_KEY=django-insecure-development-key-do-not-use-in-production
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-vigileosapp_dev}:${POSTGRES_PASSWORD:-dev_password_123}@postgres-dev:5432/${POSTGRES_DB:-vigileosapp_dev}
+      - REDIS_URL=redis://:${REDIS_PASSWORD:-dev_redis_123}@redis-dev:6379/0
+      - ALLOWED_HOSTS=localhost,127.0.0.1,0.0.0.0
+      - DJANGO_SETTINGS_MODULE=vigileos.settings.development
+      - DJANGO_SUPERUSER_USERNAME=${DJANGO_SUPERUSER_USERNAME:-admin}
+      - DJANGO_SUPERUSER_EMAIL=${DJANGO_SUPERUSER_EMAIL:-admin@localhost}
+      - DJANGO_SUPERUSER_PASSWORD=${DJANGO_SUPERUSER_PASSWORD:-admin123}
+    volumes:
+      - ./backend:/app
+      - static_dev_volume:/app/staticfiles
+      - media_dev_volume:/app/media
+      - logs_dev_volume:/app/logs
+    ports:
+      - "${WEB_PORT:-8000}:8000"
+    depends_on:
+      - postgres-dev
+      - redis-dev
+    networks:
+      - vigileosapp-dev-network
+    restart: unless-stopped
+    command: >
+      sh -c "python manage.py migrate &&
+             python manage.py collectstatic --noinput &&
+             python manage.py runserver 0.0.0.0:8000"
+
+  # Worker Celery pour le développement
+  celery-dev:
+    build: 
+      context: ./backend
+      dockerfile: Dockerfile
+      target: development
+    container_name: vigileosapp-celery-dev
+    command: celery -A vigileos worker -l debug --concurrency=1
+    environment:
+      - DEBUG=True
+      - SECRET_KEY=django-insecure-development-key-do-not-use-in-production
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-vigileosapp_dev}:${POSTGRES_PASSWORD:-dev_password_123}@postgres-dev:5432/${POSTGRES_DB:-vigileosapp_dev}
+      - REDIS_URL=redis://:${REDIS_PASSWORD:-dev_redis_123}@redis-dev:6379/0
+      - DJANGO_SETTINGS_MODULE=vigileos.settings.development
+    volumes:
+      - ./backend:/app
+      - media_dev_volume:/app/media
+      - logs_dev_volume:/app/logs
+    depends_on:
+      - postgres-dev
+      - redis-dev
+      - web-dev
+    networks:
+      - vigileosapp-dev-network
+    restart: unless-stopped
+
+  # Frontend React en mode développement
+  frontend-dev:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: development
+    container_name: vigileosapp-frontend-dev
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"
+    environment:
+      - REACT_APP_API_URL=http://localhost:8000/api
+      - CHOKIDAR_USEPOLLING=true
+      - WATCHPACK_POLLING=true
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    networks:
+      - vigileosapp-dev-network
+    restart: unless-stopped
+    command: npm start
+
+  # MailHog pour tester les emails en développement
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: vigileosapp-mailhog
+    ports:
+      - "1025:1025"  # SMTP
+      - "8025:8025"  # Web UI
+    networks:
+      - vigileosapp-dev-network
+    restart: unless-stopped
+
+volumes:
+  postgres_dev_data:
+    driver: local
+  redis_dev_data:
+    driver: local
+  static_dev_volume:
+    driver: local
+  media_dev_volume:
+    driver: local
+  logs_dev_volume:
+    driver: local
+
+networks:
+  vigileosapp-dev-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.21.0.0/16

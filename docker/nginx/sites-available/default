@@ -1,0 +1,187 @@
+# Configuration du site par défaut pour VIGILEOSAPP25
+
+# Redirection HTTP vers HTTPS
+server {
+    listen 80;
+    server_name _;
+    
+    # Health check endpoint pour le load balancer
+    location /health/ {
+        access_log off;
+        return 200 "healthy\n";
+        add_header Content-Type text/plain;
+    }
+    
+    # Redirection vers HTTPS
+    location / {
+        return 301 https://$host$request_uri;
+    }
+}
+
+# Configuration HTTPS principale
+server {
+    listen 443 ssl http2;
+    server_name _;
+    
+    # Certificats SSL (à remplacer par de vrais certificats en production)
+    ssl_certificate /etc/nginx/ssl/cert.pem;
+    ssl_certificate_key /etc/nginx/ssl/key.pem;
+    
+    # Configuration SSL
+    ssl_session_cache shared:SSL:1m;
+    ssl_session_timeout 5m;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers HIGH:!aNULL:!MD5;
+    ssl_prefer_server_ciphers on;
+    
+    # Taille maximale des uploads
+    client_max_body_size 100M;
+    
+    # Timeouts
+    proxy_connect_timeout 60s;
+    proxy_send_timeout 60s;
+    proxy_read_timeout 60s;
+    
+    # Headers pour le proxy
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Forwarded-Host $host;
+    proxy_set_header X-Forwarded-Port $server_port;
+    
+    # Health check
+    location /health/ {
+        access_log off;
+        return 200 "healthy\n";
+        add_header Content-Type text/plain;
+    }
+    
+    # API Django avec rate limiting
+    location /api/ {
+        limit_req zone=api burst=20 nodelay;
+        proxy_pass http://django;
+        
+        # Headers spécifiques pour l'API
+        add_header X-API-Version "1.0" always;
+        
+        # CORS pour l'API
+        add_header Access-Control-Allow-Origin "*" always;
+        add_header Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS" always;
+        add_header Access-Control-Allow-Headers "DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization" always;
+        
+        # Gestion des requêtes OPTIONS (preflight CORS)
+        if ($request_method = 'OPTIONS') {
+            add_header Access-Control-Allow-Origin "*";
+            add_header Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS";
+            add_header Access-Control-Allow-Headers "DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization";
+            add_header Access-Control-Max-Age 1728000;
+            add_header Content-Type "text/plain; charset=utf-8";
+            add_header Content-Length 0;
+            return 204;
+        }
+    }
+    
+    # Admin Django avec rate limiting strict
+    location /admin/ {
+        limit_req zone=login burst=5 nodelay;
+        proxy_pass http://django;
+        
+        # Sécurité renforcée pour l'admin
+        add_header X-Frame-Options "DENY" always;
+    }
+    
+    # Documentation API
+    location /docs/ {
+        proxy_pass http://django;
+    }
+    
+    location /redoc/ {
+        proxy_pass http://django;
+    }
+    
+    location /schema/ {
+        proxy_pass http://django;
+    }
+    
+    # Fichiers statiques Django avec cache long
+    location /static/ {
+        alias /var/www/static/;
+        expires 30d;
+        add_header Cache-Control "public, immutable";
+        add_header Vary "Accept-Encoding";
+        
+        # Compression pour les fichiers statiques
+        location ~* \.(css|js)$ {
+            expires 1y;
+            add_header Cache-Control "public, immutable";
+        }
+        
+        location ~* \.(jpg|jpeg|png|gif|ico|svg)$ {
+            expires 1y;
+            add_header Cache-Control "public, immutable";
+        }
+    }
+    
+    # Fichiers media avec cache modéré
+    location /media/ {
+        alias /var/www/media/;
+        expires 7d;
+        add_header Cache-Control "public";
+        
+        # Sécurité pour les uploads
+        location ~* \.(php|php5|phtml|pl|py|jsp|asp|sh|cgi)$ {
+            deny all;
+        }
+    }
+    
+    # Frontend React (si servi par Nginx)
+    location / {
+        try_files $uri $uri/ @frontend;
+    }
+    
+    location @frontend {
+        proxy_pass http://vigileosapp-frontend:3000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+    
+    # WebSocket support pour le développement (si nécessaire)
+    location /ws/ {
+        proxy_pass http://django;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+    
+    # Sécurité - Bloquer l'accès aux fichiers sensibles
+    location ~ /\. {
+        deny all;
+        access_log off;
+        log_not_found off;
+    }
+    
+    location ~ ~$ {
+        deny all;
+        access_log off;
+        log_not_found off;
+    }
+    
+    # Robots.txt
+    location = /robots.txt {
+        add_header Content-Type text/plain;
+        return 200 "User-agent: *\nDisallow: /admin/\nDisallow: /api/\n";
+    }
+    
+    # Favicon
+    location = /favicon.ico {
+        log_not_found off;
+        access_log off;
+    }
+}

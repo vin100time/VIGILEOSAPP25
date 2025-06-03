@@ -1,21 +1,74 @@
-FROM python:3.10-slim
+# Multi-stage build for production optimization
+FROM python:3.11-slim as builder
 
+# Set environment variables
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    libpq-dev \
+    gcc \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create and set work directory
 WORKDIR /app
 
-ENV PYTHONDONTWRITEBYTECODE 1
-ENV PYTHONUNBUFFERED 1
+# Install Python dependencies
+COPY requirements/ requirements/
+RUN pip install --no-cache-dir --user -r requirements/production.txt
 
-RUN apt-get update && apt-get install -y libpq-dev gcc
+# Production stage
+FROM python:3.11-slim
 
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# Set environment variables
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+ENV DJANGO_SETTINGS_MODULE=vigileos.settings.production
+ENV PATH=/home/appuser/.local/bin:$PATH
 
-COPY . .
+# Install runtime dependencies
+RUN apt-get update && apt-get install -y \
+    postgresql-client \
+    netcat-openbsd \
+    && rm -rf /var/lib/apt/lists/*
 
-# Rendre le script d'entrée exécutable
-RUN chmod +x entrypoint.sh
+# Create non-root user
+RUN adduser --disabled-password --gecos '' appuser
 
+# Set work directory
+WORKDIR /app
+
+# Copy Python dependencies from builder stage
+COPY --from=builder /root/.local /home/appuser/.local
+
+# Create necessary directories
+RUN mkdir -p /app/logs /app/staticfiles /app/media && \
+    chown -R appuser:appuser /app
+
+# Copy project files
+COPY --chown=appuser:appuser . .
+
+# Copy entrypoint script
+COPY --chown=appuser:appuser docker/entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+# Switch to non-root user
+USER appuser
+
+# Collect static files
+RUN python manage.py collectstatic --noinput --settings=vigileos.settings.production
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
+    CMD python -c "import requests; requests.get('http://localhost:8000/api/health/', timeout=10)"
+
+# Expose port
 EXPOSE 8000
 
-# Le script d'entrée sera exécuté via la commande dans docker-compose.yml
-CMD ["./entrypoint.sh"]
+# Set entrypoint
+ENTRYPOINT ["/entrypoint.sh"]
+
+# Default command
+CMD ["gunicorn", "--bind", "0.0.0.0:8000", "--workers", "3", "--timeout", "120", "vigileos.wsgi:application"]

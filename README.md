@@ -1,116 +1,381 @@
-# Vigileos - Application de surveillance réseau
+# VIGILEOSAPP25 🚀
 
-## Description
-Vigileos est une application web de surveillance d'équipements et de sites. Elle permet de gérer des sites, des équipements et des alertes pour différentes entreprises.
+Application de surveillance réseau et monitoring d'infrastructure développée avec Django REST Framework et React.
 
-## Prérequis
-- Docker
-- Docker Compose
+## 📋 Table des matières
 
-## Installation et démarrage
+- [Aperçu](#aperçu)
+- [Architecture](#architecture)
+- [Installation rapide](#installation-rapide)
+- [Développement](#développement)
+- [Production](#production)
+- [API Documentation](#api-documentation)
+- [Monitoring](#monitoring)
+- [Contribution](#contribution)
 
-### Méthode 1 : Lancement rapide avec Docker Compose (recommandé)
+## 🎯 Aperçu
 
-1. Cloner le dépôt :
-```bash
-git clone <url-du-dépôt> vigileosapp
-cd vigileosapp
+VIGILEOSAPP25 est une solution complète de surveillance réseau qui permet de :
+
+- 📊 Monitorer les équipements réseau en temps réel
+- 🚨 Gérer les alertes et notifications
+- 📈 Analyser les métriques de performance
+- 🏢 Organiser les sites et équipements
+- 👥 Gérer les utilisateurs et permissions
+
+### Technologies utilisées
+
+**Backend:**
+- Django 4.2 + Django REST Framework
+- PostgreSQL 15 avec optimisations time-series
+- Redis pour le cache et les tâches asynchrones
+- Celery pour les tâches en arrière-plan
+- Docker pour la containerisation
+
+**Frontend:**
+- React 18 avec TypeScript
+- Material-UI pour l'interface
+- Axios pour les appels API
+- Chart.js pour les graphiques
+
+**Infrastructure:**
+- Nginx comme reverse proxy
+- Docker Compose pour l'orchestration
+- SSL/TLS avec certificats automatiques
+- Monitoring avec health checks
+
+## 🏗️ Architecture
+
+```
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   Frontend      │    │   Nginx         │    │   Backend       │
+│   React         │◄──►│   Reverse Proxy │◄──►│   Django        │
+│   Port 3000     │    │   Port 80/443   │    │   Port 8000     │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+                                                        │
+                       ┌─────────────────┐             │
+                       │   Celery        │◄────────────┤
+                       │   Workers       │             │
+                       │                 │             │
+                       └─────────────────┘             │
+                                                        │
+┌─────────────────┐    ┌─────────────────┐             │
+│   PostgreSQL    │◄───│   Redis         │◄────────────┘
+│   Database      │    │   Cache/Queue   │
+│   Port 5432     │    │   Port 6379     │
+└─────────────────┘    └─────────────────┘
 ```
 
-2. Lancer l'application :
+## ⚡ Installation rapide
+
+### Prérequis
+
+- Docker 20.10+
+- Docker Compose 2.0+
+- Git
+
+### Installation en une commande
+
 ```bash
-docker-compose up -d
+# Cloner le projet
+git clone https://github.com/vin100time/VIGILEOSAPP25.git
+cd VIGILEOSAPP25
+
+# Installation et démarrage automatique
+make install
 ```
 
-3. Accéder à l'application :
-- Frontend : http://localhost:8080
-- Backend API : http://localhost:8000
-- Interface d'administration Django : http://localhost:8000/admin
+L'application sera disponible sur :
+- **Frontend**: http://localhost:3000
+- **Backend API**: http://localhost:8000
+- **Admin Django**: http://localhost:8000/admin
+- **Documentation API**: http://localhost:8000/api/docs
+- **MailHog** (emails de test): http://localhost:8025
 
-### Méthode 2 : Installation manuelle
+### Connexion par défaut
 
-#### Backend
-1. Se déplacer dans le dossier backend :
+- **Utilisateur**: admin
+- **Mot de passe**: admin123
+
+## 🛠️ Développement
+
+### Commandes principales
+
 ```bash
-cd backend
+# Démarrer l'environnement de développement
+make dev-start
+
+# Voir les logs en temps réel
+make dev-logs
+
+# Accéder au shell Django
+make dev-shell
+
+# Exécuter les migrations
+make dev-migrate
+
+# Créer de nouvelles migrations
+make dev-makemigrations
+
+# Exécuter les tests
+make dev-test
+
+# Arrêter les services
+make dev-stop
+
+# Nettoyer l'environnement
+make dev-clean
 ```
 
-2. Créer un environnement virtuel et installer les dépendances :
-```bash
-python -m venv venv
-source venv/bin/activate  # Sur Windows : venv\Scripts\activate
-pip install -r requirements.txt
+### Structure du projet
+
+```
+VIGILEOSAPP25/
+├── backend/                 # Application Django
+│   ├── vigileos/           # Configuration principale
+│   ├── users/              # Gestion des utilisateurs
+│   ├── sites/              # Gestion des sites
+│   ├── equipment/          # Gestion des équipements
+│   ├── alerts/             # Système d'alertes
+│   ├── metrics/            # Métriques et monitoring
+│   └── requirements/       # Dépendances Python
+├── frontend/               # Application React
+│   ├── src/
+│   ├── public/
+│   └── package.json
+├── docker/                 # Configuration Docker
+│   ├── nginx/              # Configuration Nginx
+│   ├── postgres/           # Configuration PostgreSQL
+│   └── redis/              # Configuration Redis
+├── scripts/                # Scripts de déploiement
+├── docker-compose.yml      # Production
+├── docker-compose.dev.yml  # Développement
+└── Makefile               # Commandes simplifiées
 ```
 
-3. Configurer les variables d'environnement :
+### Variables d'environnement
+
+Copiez `.env.example` vers `.env` et modifiez selon vos besoins :
+
 ```bash
 cp .env.example .env
-# Éditer le fichier .env avec vos configurations
 ```
 
-4. Lancer les migrations :
+Variables principales :
+- `DEBUG`: Mode debug (True/False)
+- `SECRET_KEY`: Clé secrète Django
+- `DATABASE_URL`: URL de la base de données
+- `REDIS_URL`: URL du cache Redis
+- `ALLOWED_HOSTS`: Hosts autorisés
+
+### Développement de l'API
+
+L'API suit les conventions REST et utilise Django REST Framework :
+
+```python
+# Exemple d'endpoint
+GET /api/sites/                 # Liste des sites
+POST /api/sites/                # Créer un site
+GET /api/sites/{id}/            # Détail d'un site
+PUT /api/sites/{id}/            # Modifier un site
+DELETE /api/sites/{id}/         # Supprimer un site
+```
+
+Documentation interactive disponible sur `/api/docs/`
+
+## 🚀 Production
+
+### Déploiement
+
 ```bash
-python manage.py migrate
+# Configuration pour la production
+make prod-setup
+
+# Modifier le fichier .env avec vos vraies valeurs
+nano .env
+
+# Déploiement complet
+make prod-deploy
 ```
 
-5. Créer un superutilisateur :
+### Configuration SSL
+
+Pour la production, placez vos certificats SSL dans `docker/ssl/` :
+- `cert.pem` : Certificat SSL
+- `key.pem` : Clé privée
+
+### Scaling horizontal
+
 ```bash
-python manage.py createsuperuser
+# Augmenter le nombre d'instances web
+docker-compose up -d --scale web=3
+
+# Ou via le script de déploiement
+./scripts/deploy.sh production scale web=3
 ```
 
-6. Lancer le serveur de développement :
+### Sauvegarde
+
 ```bash
-python manage.py runserver
+# Sauvegarde automatique
+make backup
+
+# Restauration
+make restore BACKUP=backups/postgres_backup_20231201_120000.sql.gz
 ```
 
-#### Frontend
-1. Se déplacer dans le dossier frontend :
+## 📊 Monitoring
+
+### Health Checks
+
+L'application expose plusieurs endpoints de santé :
+
+- `/health/` : Check simple pour load balancers
+- `/api/health/` : Check complet avec détails des services
+- `/api/readiness/` : Vérification de disponibilité
+- `/api/liveness/` : Vérification de vie
+
+### Logs
+
 ```bash
-cd frontend
+# Logs en temps réel
+make logs
+
+# Logs d'un service spécifique
+docker-compose logs -f web
+
+# Logs avec horodatage
+docker-compose logs -f -t
 ```
 
-2. Installer les dépendances :
+### Métriques
+
+Les métriques sont collectées automatiquement :
+- Performance des requêtes PostgreSQL
+- Utilisation du cache Redis
+- Métriques applicatives Django
+- Métriques système via Docker
+
+## 🔧 Configuration avancée
+
+### PostgreSQL
+
+Configuration optimisée pour les time-series dans `docker/postgres/postgresql.conf` :
+- Shared buffers : 256MB
+- Work mem : 4MB
+- Autovacuum optimisé
+- Extensions : uuid-ossp, pg_trgm, btree_gin
+
+### Redis
+
+Configuration pour Django et Celery dans `docker/redis/redis.conf` :
+- Maxmemory : 512MB
+- Policy : allkeys-lru
+- Persistance : AOF + RDB
+- Bases séparées par usage
+
+### Nginx
+
+Configuration haute performance dans `docker/nginx/` :
+- Compression gzip
+- Cache statique
+- Rate limiting
+- Headers de sécurité
+- Support WebSocket
+
+## 🧪 Tests
+
 ```bash
-npm install
+# Tests unitaires
+make test
+
+# Tests avec coverage
+docker-compose exec web coverage run --source='.' manage.py test
+docker-compose exec web coverage report
+
+# Tests d'intégration
+docker-compose exec web python manage.py test --tag=integration
 ```
 
-3. Lancer le serveur de développement :
+## 📚 API Documentation
+
+### Authentification
+
+L'API utilise l'authentification par token JWT :
+
 ```bash
-npm run dev
+# Obtenir un token
+curl -X POST http://localhost:8000/api/auth/login/ \
+  -H "Content-Type: application/json" \
+  -d '{"username": "admin", "password": "admin123"}'
+
+# Utiliser le token
+curl -H "Authorization: Bearer YOUR_TOKEN" \
+  http://localhost:8000/api/sites/
 ```
 
-## Structure du projet
-```
-vigileosapp/
-├── backend/             # Code source du backend Django
-│   ├── vigileos/        # Configuration principale Django
-│   ├── users/           # Application de gestion des utilisateurs
-│   ├── sites/           # Application de gestion des sites
-│   ├── equipment/       # Application de gestion des équipements
-│   ├── alerts/          # Application de gestion des alertes
-│   └── Dockerfile       # Configuration Docker pour le backend
-├── frontend/            # Code source du frontend React
-│   ├── src/             # Code source React
-│   ├── public/          # Fichiers statiques
-│   └── Dockerfile       # Configuration Docker pour le frontend
-└── docker-compose.yml   # Configuration Docker Compose
-```
+### Endpoints principaux
 
-## Arrêt de l'application
-Pour arrêter l'application lancée avec Docker Compose :
+| Endpoint | Méthode | Description |
+|----------|---------|-------------|
+| `/api/auth/` | POST | Authentification |
+| `/api/sites/` | GET, POST | Gestion des sites |
+| `/api/equipment/` | GET, POST | Gestion des équipements |
+| `/api/alerts/` | GET, POST | Gestion des alertes |
+| `/api/metrics/` | GET, POST | Métriques de monitoring |
+
+Documentation complète : http://localhost:8000/api/docs/
+
+## 🤝 Contribution
+
+### Workflow de développement
+
+1. Fork le projet
+2. Créer une branche feature (`git checkout -b feature/amazing-feature`)
+3. Commit les changements (`git commit -m 'Add amazing feature'`)
+4. Push vers la branche (`git push origin feature/amazing-feature`)
+5. Ouvrir une Pull Request
+
+### Standards de code
+
+- **Python** : PEP 8, Black formatter
+- **JavaScript** : ESLint, Prettier
+- **Commits** : Convention Conventional Commits
+- **Tests** : Coverage minimum 80%
+
+### Environnement de développement
+
 ```bash
-docker-compose down
+# Installation des hooks pre-commit
+pip install pre-commit
+pre-commit install
+
+# Vérification du code
+make lint
+
+# Tests avant commit
+make test
 ```
 
-Pour arrêter l'application et supprimer les volumes (données de la base de données) :
-```bash
-docker-compose down -v
-```
+## 📄 Licence
 
-## Développement
-- Le backend est accessible sur http://localhost:8000
-- Le frontend est accessible sur http://localhost:8080
-- L'API est documentée dans le fichier `frontend/API_DOCUMENTATION.md`
+Ce projet est sous licence MIT. Voir le fichier [LICENSE](LICENSE) pour plus de détails.
 
-## Support
-Pour toute question ou problème, veuillez créer une issue dans le dépôt GitHub du projet. 
+## 🆘 Support
+
+- **Documentation** : [Wiki du projet](https://github.com/vin100time/VIGILEOSAPP25/wiki)
+- **Issues** : [GitHub Issues](https://github.com/vin100time/VIGILEOSAPP25/issues)
+- **Discussions** : [GitHub Discussions](https://github.com/vin100time/VIGILEOSAPP25/discussions)
+
+## 🎉 Remerciements
+
+- Django et Django REST Framework
+- React et l'écosystème JavaScript
+- PostgreSQL et Redis
+- Docker et Docker Compose
+- Nginx
+- Toute la communauté open source
+
+---
+
+**VIGILEOSAPP25** - Surveillance réseau moderne et scalable 🚀 

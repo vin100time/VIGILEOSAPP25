@@ -1,0 +1,28 @@
+# Production requirements
+-r base.txt
+
+# Database
+psycopg2-binary==2.9.9
+
+# Cache and Sessions
+django-redis==5.4.0
+redis==5.0.1
+
+# Task Queue
+celery==5.3.4
+django-celery-beat==2.5.0
+django-celery-results==2.5.1
+
+# WSGI Server
+gunicorn==21.2.0
+
+# Monitoring and Logging
+sentry-sdk[django]==1.38.0
+django-extensions==3.2.3
+
+# Security
+django-ratelimit==4.1.0
+django-csp==3.7
+
+# Performance
+django-cachalot==2.6.1
