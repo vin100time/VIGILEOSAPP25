@@ -32,6 +32,7 @@ INSTALLED_APPS = [
     'equipment',
     'alerts',
     'metrics',
+    'influxdb_integration',
 ]
 
 MIDDLEWARE = [
@@ -158,3 +159,9 @@ CORS_ALLOWED_ORIGINS = [
     "https://vigileospro.com",
 ]
 CORS_ALLOW_CREDENTIALS = True
+
+# InfluxDB settings
+INFLUXDB_URL = os.environ.get('INFLUXDB_URL', 'http://influxdb:8086')
+INFLUXDB_TOKEN = os.environ.get('INFLUXDB_TOKEN', '')
+INFLUXDB_ORG = os.environ.get('INFLUXDB_ORG', 'vigileos')
+INFLUXDB_BUCKET = os.environ.get('INFLUXDB_BUCKET', 'equipment_metrics')

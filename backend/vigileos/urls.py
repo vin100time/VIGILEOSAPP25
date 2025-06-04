@@ -15,6 +15,7 @@ urlpatterns = [
     path('api/', include('equipment.urls', namespace='equipment')),
     path('api/', include('alerts.urls', namespace='alerts')),
     path('api/', include('metrics.urls', namespace='metrics')),
+    path('api/', include('influxdb_integration.urls', namespace='influxdb')),
     path('api/dashboard/', dashboard_view, name='dashboard'),
     
     # Documentation API

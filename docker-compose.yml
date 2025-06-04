@@ -44,6 +44,31 @@ services:
       timeout: 3s
       retries: 5
 
+  # InfluxDB pour les métriques temporelles
+  influxdb:
+    image: influxdb:2.7-alpine
+    container_name: vigileosapp-influxdb
+    environment:
+      DOCKER_INFLUXDB_INIT_MODE: setup
+      DOCKER_INFLUXDB_INIT_USERNAME: ${INFLUXDB_USERNAME:-admin}
+      DOCKER_INFLUXDB_INIT_PASSWORD: ${INFLUXDB_PASSWORD:-secure_influx_password_123}
+      DOCKER_INFLUXDB_INIT_ORG: ${INFLUXDB_ORG:-vigileos}
+      DOCKER_INFLUXDB_INIT_BUCKET: ${INFLUXDB_BUCKET:-equipment_metrics}
+      DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: ${INFLUXDB_TOKEN:-my-super-secret-auth-token}
+    volumes:
+      - influxdb_data:/var/lib/influxdb2
+      - influxdb_config:/etc/influxdb2
+    ports:
+      - "${INFLUXDB_PORT:-8086}:8086"
+    networks:
+      - vigileosapp-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "influx", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   # Application Django
   web:
     build: 
@@ -60,6 +85,10 @@ services:
       - DJANGO_SUPERUSER_USERNAME=${DJANGO_SUPERUSER_USERNAME:-admin}
       - DJANGO_SUPERUSER_EMAIL=${DJANGO_SUPERUSER_EMAIL:-admin@vigileosapp.com}
       - DJANGO_SUPERUSER_PASSWORD=${DJANGO_SUPERUSER_PASSWORD:-admin123}
+      - INFLUXDB_URL=http://influxdb:8086
+      - INFLUXDB_TOKEN=${INFLUXDB_TOKEN:-my-super-secret-auth-token}
+      - INFLUXDB_ORG=${INFLUXDB_ORG:-vigileos}
+      - INFLUXDB_BUCKET=${INFLUXDB_BUCKET:-equipment_metrics}
     volumes:
       - static_volume:/app/staticfiles
       - media_volume:/app/media
@@ -70,6 +99,8 @@ services:
       postgres:
         condition: service_healthy
       redis:
+        condition: service_healthy
+      influxdb:
         condition: service_healthy
     networks:
       - vigileosapp-network
@@ -187,6 +218,10 @@ volumes:
   postgres_data:
     driver: local
   redis_data:
+    driver: local
+  influxdb_data:
+    driver: local
+  influxdb_config:
     driver: local
   static_volume:
     driver: local
